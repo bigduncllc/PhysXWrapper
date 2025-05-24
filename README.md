@@ -54,8 +54,8 @@ This wrapper does not currently support:
 * **CMake** 3.15 or later
 * **C++20** compatible compiler
 
-    * Linux: Clang 18+ (GCC support untested)
-    * Windows: MSVC (tested with Visual Studio 2019+)
+    * Linux: Clang 18+ (GCC support untested)
+    * Windows: MSVC (tested with Visual Studio 2019+ Build Tools)
 * **PhysX SDK 4.1** (included in `third_party/PhysX`)
 
 ---

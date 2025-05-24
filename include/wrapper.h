@@ -35,7 +35,8 @@ extern "C" {
 
 
 
-    typedef void (*PxCollisionCallback)(PxActorHandle a0, PxActorHandle a1);
+    //typedef void (*PxCollisionCallback)(PxActorHandle a0, PxActorHandle a1);
+    typedef void (*ContactCallbackWithShapes)(PxActorHandle selfActor, PxShapeHandle selfShape, PxActorHandle otherActor, PxShapeHandle otherShape);
 
     typedef struct {
         float px, py, pz;
@@ -43,7 +44,7 @@ extern "C" {
         float separation;
     } PxContactPoint;
 
-    typedef void (*PxTriggerCallback)(PxActorHandle trigger, PxActorHandle other, bool entered);
+    typedef void (*PxTriggerCallback)(PxActorHandle triggerActor, PxShapeHandle triggerShape, PxActorHandle otherActor, PxShapeHandle otherShape, bool entered);
 
 
     API PxFoundationHandle CreateFoundation();
@@ -298,12 +299,12 @@ extern "C" {
     );
 
     // Called once when two shapes first begin contacting
-    API void RegisterCollisionEnterCallback(PxCollisionCallback cb);
+    API void RegisterCollisionEnterCallback(ContactCallbackWithShapes cb);
 
-    API void RegisterCollisionStayCallback(PxCollisionCallback cb);
+    API void RegisterCollisionStayCallback(ContactCallbackWithShapes cb);
 
     // Called once when the shapes stop contacting
-    API void RegisterCollisionExitCallback(PxCollisionCallback cb);
+    API void RegisterCollisionExitCallback(ContactCallbackWithShapes cb);
 
     API void RegisterTriggerCallback(PxTriggerCallback cb);
 

@@ -19,9 +19,9 @@ using namespace physx;
 
 static PxTriggerCallback  g_triggerCb = nullptr;
 
-static PxCollisionCallback g_enterCb  = nullptr;
-static PxCollisionCallback g_stayCb   = nullptr;
-static PxCollisionCallback g_exitCb   = nullptr;
+static ContactCallbackWithShapes g_enterCb  = nullptr;
+static ContactCallbackWithShapes g_stayCb   = nullptr;
+static ContactCallbackWithShapes g_exitCb   = nullptr;
 
 static std::vector<uint32_t> g_layerMasks(32, 0xFFFFFFFFu);
 static uint32_t               g_layerCount = 32;
@@ -558,9 +558,9 @@ API int32_t SceneRaycastFiltered(
     return 1;
 }
 
-API void RegisterCollisionEnterCallback(PxCollisionCallback cb) { g_enterCb = cb; }
-API void RegisterCollisionStayCallback(PxCollisionCallback cb)  { g_stayCb  = cb; }
-API void RegisterCollisionExitCallback(PxCollisionCallback cb)  { g_exitCb  = cb; }
+API void RegisterCollisionEnterCallback(ContactCallbackWithShapes cb) { g_enterCb = cb; }
+API void RegisterCollisionStayCallback(ContactCallbackWithShapes cb)  { g_stayCb  = cb; }
+API void RegisterCollisionExitCallback(ContactCallbackWithShapes cb)  { g_exitCb  = cb; }
 
 struct LocalSimulationEventCallback : PxSimulationEventCallback
 {
@@ -580,17 +580,20 @@ struct LocalSimulationEventCallback : PxSimulationEventCallback
 
         for (PxU32 i = 0; i < nbPairs; ++i) {
             const auto& pair = pairs[i];
-            auto a0 = reinterpret_cast<PxActorHandle>(hdr.actors[0]);
-            auto a1 = reinterpret_cast<PxActorHandle>(hdr.actors[1]);
+            auto selfActor  = reinterpret_cast<PxActorHandle>(hdr.actors[0]);
+            auto otherActor = reinterpret_cast<PxActorHandle>(hdr.actors[1]);
+
+            auto selfShape  = reinterpret_cast<PxShapeHandle>(pair.shapes[0]);
+            auto otherShape = reinterpret_cast<PxShapeHandle>(pair.shapes[1]);
 
             if (g_enterCb && (pair.events & PxPairFlag::eNOTIFY_TOUCH_FOUND))
-                g_enterCb(a0, a1);
+                g_enterCb(selfActor, selfShape, otherActor, otherShape);
 
             if (g_stayCb  && (pair.events & PxPairFlag::eNOTIFY_TOUCH_PERSISTS))
-                g_stayCb(a0, a1);
+                g_stayCb(selfActor, selfShape, otherActor, otherShape);
 
             if (g_exitCb  && (pair.events & PxPairFlag::eNOTIFY_TOUCH_LOST))
-                g_exitCb(a0, a1);
+                g_exitCb(selfActor, selfShape, otherActor, otherShape);
         }
     }
 
@@ -601,17 +604,20 @@ struct LocalSimulationEventCallback : PxSimulationEventCallback
 
         for (PxU32 i = 0; i < count; ++i)
         {
-            bool entered = (pairs[i].status == PxPairFlag::eNOTIFY_TOUCH_FOUND);
-            g_triggerCb(
-                reinterpret_cast<PxActorHandle>(pairs[i].triggerActor),
-                reinterpret_cast<PxActorHandle>(pairs[i].otherActor),
-                entered
-            );
+            auto triggerActor  = reinterpret_cast<PxActorHandle>(pairs[i].triggerActor);
+            auto otherActor    = reinterpret_cast<PxActorHandle>(pairs[i].otherActor);
+
+            auto triggerShape  = reinterpret_cast<PxShapeHandle>(pairs[i].triggerShape);
+            auto otherShape    = reinterpret_cast<PxShapeHandle>(pairs[i].otherShape);
+
+            if (pairs[i].status & PxPairFlag::eNOTIFY_TOUCH_FOUND) {
+                g_triggerCb(triggerActor, triggerShape, otherActor, otherShape, true);
+            }
+            if (pairs[i].status & PxPairFlag::eNOTIFY_TOUCH_LOST) {
+                g_triggerCb(triggerActor, triggerShape, otherActor, otherShape, false);
+            }
         }
     }
-
-
-
 
     void onConstraintBreak(PxConstraintInfo* /*constraints*/, PxU32 /*count*/) override {}
 
