@@ -806,3 +806,38 @@ API void PxRigidDynamic_GetWakeCounter(PxActorHandle actorHandle, float* outValu
         *outValue = 0.0f;
     }
 }
+
+API uint32_t GetFilterLayerMask(uint32_t layer)
+{
+    if (layer < g_layerCount)
+        return g_layerMasks[layer];
+    return 0;
+}
+
+API void SetShapeLocalPose(
+    PxShapeHandle s_,
+    float px, float py, float pz,
+    float qx, float qy, float qz, float qw)
+{
+    PxShape* s = reinterpret_cast<PxShape*>(s_);
+    PxTransform newLocalPose(PxVec3(px, py, pz), PxQuat(qx, qy, qz, qw));
+    s->setLocalPose(newLocalPose);
+}
+
+API void GetShapeLocalPose(
+    PxShapeHandle s_,
+    float* px, float* py, float* pz,
+    float* qx, float* qy, float* qz, float* qw)
+{
+    PxShape* s = reinterpret_cast<PxShape*>(s_);
+    PxTransform localPose = s->getLocalPose();
+
+    if (px) *px = localPose.p.x;
+    if (py) *py = localPose.p.y;
+    if (pz) *pz = localPose.p.z;
+
+    if (qx) *qx = localPose.q.x;
+    if (qy) *qy = localPose.q.y;
+    if (qz) *qz = localPose.q.z;
+    if (qw) *qw = localPose.q.w;
+}

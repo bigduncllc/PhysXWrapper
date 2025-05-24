@@ -325,6 +325,19 @@ extern "C" {
 
     API void PxRigidDynamic_GetWakeCounter(PxActorHandle actorHandle, float* outValue);
 
+    API uint32_t GetFilterLayerMask(uint32_t layer);
+
+    API void SetShapeLocalPose(
+        PxShapeHandle s_,
+        float px, float py, float pz,
+        float qx, float qy, float qz, float qw
+    );
+
+    API void GetShapeLocalPose(
+        PxShapeHandle s_,
+        float* px, float* py, float* pz,
+        float* qx, float* qy, float* qz, float* qw
+    );
 
 #ifdef __cplusplus
 }
