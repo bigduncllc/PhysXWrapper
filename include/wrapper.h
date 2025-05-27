@@ -164,26 +164,26 @@ extern "C" {
         float px, float py, float pz,
         float qx, float qy, float qz, float qw);
 
-    API int32_t            SceneOverlapCapsule(
-        PxSceneHandle,
+    API int32_t SceneOverlapCapsule(
+        PxSceneHandle s_,
         float px, float py, float pz,
         float qx, float qy, float qz, float qw,
-        float radius, float halfHeight,
+        float r, float hh,
         int32_t maxHits,
-        float outNormals[][3],
-        PxActorHandle outActors[]);
+        PxActorHandle outActors[],
+        PxShapeHandle outShapes[]);
 
-    API int32_t            SceneSweepCapsule(
-        PxSceneHandle,
+    API int32_t SceneSweepCapsule(
+        PxSceneHandle s_,
         float px, float py, float pz,
         float qx, float qy, float qz, float qw,
-        float radius, float halfHeight,
-        float dx, float dy, float dz,
-        float distance,
+        float r, float hh,
+        float dx, float dy, float dz, float dist,
         int32_t maxHits,
-        float outHitPoints[][3],
-        float outHitNormals[][3],
-        PxActorHandle outActors[]);
+        float outPoints[][3],
+        float outNormals[][3],
+        PxActorHandle outActors[],
+        PxShapeHandle outShapes[]);
 
     API int32_t            SceneRaycast(
         PxSceneHandle,
@@ -224,28 +224,29 @@ extern "C" {
         PxSceneHandle,
         PxSimulationEventCallbackHandle);
 
-    API int32_t            SceneOverlapCapsuleFiltered(
-        PxSceneHandle,
+    API int32_t SceneOverlapCapsuleFiltered(
+        PxSceneHandle s_,
         float px, float py, float pz,
         float qx, float qy, float qz, float qw,
-        float radius, float halfHeight,
+        float r, float hh,
         uint32_t group, uint32_t mask,
         int32_t maxHits,
-        float outNormals[][3],
-        PxActorHandle outActors[]);
+        PxActorHandle outActors[],
+        PxShapeHandle outShapes[]);
 
-    API int32_t            SceneSweepCapsuleFiltered(
-        PxSceneHandle,
+    API int32_t SceneSweepCapsuleFiltered(
+        PxSceneHandle s_,
         float px, float py, float pz,
         float qx, float qy, float qz, float qw,
-        float radius, float halfHeight,
+        float r, float hh,
         float dx, float dy, float dz,
-        float distance,
+        float dist,
         uint32_t group, uint32_t mask,
         int32_t maxHits,
         float outHitPoints[][3],
         float outHitNormals[][3],
-        PxActorHandle outActors[]);
+        PxActorHandle outActors[],
+        PxShapeHandle outShapes[]);
 
     API int32_t            SceneRaycastFiltered(
         PxSceneHandle,
@@ -338,6 +339,31 @@ extern "C" {
         PxShapeHandle s_,
         float* px, float* py, float* pz,
         float* qx, float* qy, float* qz, float* qw
+    );
+
+    API int32_t SceneRaycastAllFiltered(
+        PxSceneHandle   s_,
+        float           ox, float oy, float oz,
+        float           dx, float dy, float dz,
+        float           maxDistance,
+        uint32_t        group, uint32_t mask,
+        int32_t         maxHits,
+        float           outPoints[][3],
+        float           outNormals[][3],
+        PxActorHandle   outActors[],
+        PxShapeHandle   outShapes[]
+    );
+
+    API int32_t SceneRaycastAll(
+        PxSceneHandle   s_,
+        float           ox, float oy, float oz,
+        float           dx, float dy, float dz,
+        float           maxDistance,
+        int32_t         maxHits,
+        float           outPoints[][3],
+        float           outNormals[][3],
+        PxActorHandle   outActors[],
+        PxShapeHandle   outShapes[]
     );
 
 #ifdef __cplusplus

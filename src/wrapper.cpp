@@ -15,6 +15,9 @@
 #include <PxSimulationEventCallback.h>
 #include <PxFiltering.h>
 
+#define RAYCAST_MAX_HITS 64
+
+
 using namespace physx;
 
 static PxTriggerCallback  g_triggerCb = nullptr;
@@ -311,8 +314,8 @@ API int32_t SceneOverlapCapsule(
     float qx, float qy, float qz, float qw,
     float r, float hh,
     int32_t maxHits,
-    float outNormals[][3],
-    PxActorHandle outActors[])
+    PxActorHandle outActors[],
+    PxShapeHandle outShapes[])
 {
     PxOverlapHit   bufHits[256];
     PxOverlapBuffer buf(bufHits, 256);
@@ -321,9 +324,10 @@ API int32_t SceneOverlapCapsule(
             PxTransform(PxVec3(px, py, pz), PxQuat(qx, qy, qz, qw)),
             buf, PxQueryFilterData());
     PxU32 n = buf.getNbTouches();
+    const PxOverlapHit* hits = buf.getTouches();
     for (PxU32 i = 0;i < n && i < (PxU32)maxHits;i++) {
-        outNormals[i][0] = outNormals[i][1] = outNormals[i][2] = 0.0f;
-        outActors[i] = buf.getTouches()[i].actor;
+        outActors[i] = hits[i].actor;
+        outShapes[i] = hits[i].shape;
     }
     return int32_t(n);
 }
@@ -337,7 +341,8 @@ API int32_t SceneSweepCapsule(
     int32_t maxHits,
     float outPoints[][3],
     float outNormals[][3],
-    PxActorHandle outActors[])
+    PxActorHandle outActors[],
+    PxShapeHandle outShapes[])
 {
     PxSweepHit   bufHits[256];
     PxSweepBuffer buf(bufHits, 256);
@@ -354,6 +359,7 @@ API int32_t SceneSweepCapsule(
         outPoints[i][0] = h.position.x; outPoints[i][1] = h.position.y; outPoints[i][2] = h.position.z;
         outNormals[i][0] = h.normal.x;   outNormals[i][1] = h.normal.y;   outNormals[i][2] = h.normal.z;
         outActors[i] = h.actor;
+        outShapes[i] = h.shape;
     }
     return int32_t(n);
 }
@@ -456,14 +462,14 @@ API int32_t SceneOverlapCapsuleFiltered(
     float r, float hh,
     uint32_t group, uint32_t mask,
     int32_t maxHits,
-    float outNormals[][3],
-    PxActorHandle outActors[])
+    PxActorHandle outActors[],
+    PxShapeHandle outShapes[])
 {
     PxOverlapHit   hitBuf[256];
     PxOverlapBuffer buf(hitBuf, 256);
 
-    PxFilterData       fd(group, mask, 0, 0);
-    PxQueryFilterData  qfd(fd, PxQueryFlags(PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC));
+    PxFilterData      fd(group, mask, 0, 0);
+    PxQueryFilterData qfd(fd, PxQueryFlags(PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC));
 
     reinterpret_cast<PxScene*>(s_)->overlap(
         PxCapsuleGeometry(r, hh),
@@ -473,11 +479,104 @@ API int32_t SceneOverlapCapsuleFiltered(
     );
 
     PxU32 n = buf.getNbTouches();
-    for (PxU32 i = 0; i < n && i < (PxU32)maxHits; ++i) {
-        outNormals[i][0] = outNormals[i][1] = outNormals[i][2] = 0.0f;
-        outActors[i] = buf.getTouches()[i].actor;
+    const PxOverlapHit* hits = buf.getTouches();
+    PxU32 count = PxMin(n, PxMin< PxU32>(256, (PxU32)maxHits));
+    for (PxU32 i = 0; i < count; ++i) {
+        outActors[i] = hits[i].actor;
+        outShapes[i] = hits[i].shape;
     }
-    return int32_t(n);
+    return int32_t(count);
+}
+
+
+API int32_t SceneRaycastAll(
+    PxSceneHandle   s_,
+    float           ox, float oy, float oz,
+    float           dx, float dy, float dz,
+    float           maxDistance,
+    int32_t         maxHits,
+    float           outPoints[][3],
+    float           outNormals[][3],
+    PxActorHandle   outActors[],
+    PxShapeHandle   outShapes[])
+{
+    PxRaycastHit     bufHits[256];
+    PxRaycastBuffer  buf(bufHits, 256);
+
+    bool ok = reinterpret_cast<PxScene*>(s_)
+      ->raycast(
+         PxVec3(ox, oy, oz),
+         PxVec3(dx, dy, dz),
+         maxDistance,
+         buf,
+         PxHitFlag::ePOSITION|PxHitFlag::eNORMAL,
+         PxQueryFilterData()
+      );
+
+    PxU32 nb = ok ? buf.getNbTouches() : 0;
+    for (PxU32 i = 0; i < nb && i < (PxU32)maxHits; ++i) {
+        const auto& h = buf.getTouches()[i];
+
+        outPoints[i][0] = h.position.x;
+        outPoints[i][1] = h.position.y;
+        outPoints[i][2] = h.position.z;
+
+        outNormals[i][0] = h.normal.x;
+        outNormals[i][1] = h.normal.y;
+        outNormals[i][2] = h.normal.z;
+
+        outActors[i] = h.actor;
+        outShapes[i] = h.shape;
+    }
+
+    return int32_t(nb);
+}
+
+
+API int32_t SceneRaycastAllFiltered(
+    PxSceneHandle   s_,
+    float           ox, float oy, float oz,
+    float           dx, float dy, float dz,
+    float           maxDistance,
+    uint32_t        group, uint32_t mask,
+    int32_t         maxHits,
+    float           outPoints[][3],
+    float           outNormals[][3],
+    PxActorHandle   outActors[],
+    PxShapeHandle   outShapes[])
+{
+    PxRaycastHit     bufHits[256];
+    PxFilterData     fd(group, mask, 0, 0);
+    PxQueryFilterData qfd(fd, PxQueryFlags(PxQueryFlag::eSTATIC|PxQueryFlag::eDYNAMIC));
+    PxRaycastBuffer  buf(bufHits, 256);
+
+    bool ok = reinterpret_cast<PxScene*>(s_)
+      ->raycast(
+         PxVec3(ox, oy, oz),
+         PxVec3(dx, dy, dz),
+         maxDistance,
+         buf,
+         PxHitFlag::ePOSITION|PxHitFlag::eNORMAL,
+         qfd
+      );
+
+    PxU32 nb = ok ? buf.getNbTouches() : 0;
+    for (PxU32 i = 0; i < nb && i < (PxU32)maxHits; ++i) {
+        const auto& h = buf.getTouches()[i];
+
+        outPoints[i][0] = h.position.x;
+        outPoints[i][1] = h.position.y;
+        outPoints[i][2] = h.position.z;
+
+        outNormals[i][0] = h.normal.x;
+        outNormals[i][1] = h.normal.y;
+        outNormals[i][2] = h.normal.z;
+
+        outActors[i] = h.actor;
+        outShapes[i] = h.shape;
+    }
+
+    return int32_t(nb);
 }
 
 API int32_t SceneSweepCapsuleFiltered(
@@ -491,7 +590,8 @@ API int32_t SceneSweepCapsuleFiltered(
     int32_t maxHits,
     float outHitPoints[][3],
     float outHitNormals[][3],
-    PxActorHandle outActors[])
+    PxActorHandle outActors[],
+    PxShapeHandle outShapes[])
 {
     PxSweepHit     hitBuf[256];
     PxSweepBuffer  buf(hitBuf, 256);
@@ -519,6 +619,7 @@ API int32_t SceneSweepCapsuleFiltered(
         outHitNormals[i][1] = h.normal.y;
         outHitNormals[i][2] = h.normal.z;
         outActors[i] = h.actor;
+        outShapes[i] = h.shape;
     }
     return int32_t(n);
 }
