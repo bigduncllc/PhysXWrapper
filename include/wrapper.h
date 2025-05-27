@@ -117,7 +117,7 @@ extern "C" {
     API PxActorHandle      CreateRigidDynamic(
         PxPhysicsHandle,
         float px, float py, float pz,
-        float qx, float qy, float qz, float qw);
+        float qx, float qy, float qz, float qw, float mass);
 
     API void               ReleaseActor(PxActorHandle);
 
