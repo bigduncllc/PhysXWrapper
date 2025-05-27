@@ -382,6 +382,14 @@ extern "C" {
         uint16_t                 materialCount
     );
 
+    API int32_t AddForceAtPosition(
+        PxActorHandle actorH,
+        float fx, float fy, float fz,
+        float px, float py, float pz,
+        int32_t mode,
+        int32_t autowake
+    );
+
 #ifdef __cplusplus
 }
 #endif

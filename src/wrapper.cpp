@@ -46,6 +46,14 @@ struct LocalErrorCallback : PxErrorCallback {
     }
 };
 
+inline PxRigidDynamic* GetRigidDynamic(PxActorHandle actorHandle) {
+    PxActor* actor = reinterpret_cast<PxActor*>(actorHandle);
+    if (actor && actor->getConcreteType() == PxConcreteType::eRIGID_DYNAMIC) {
+        return static_cast<PxRigidDynamic*>(actor);
+    }
+    return nullptr;
+}
+
 API void RegisterTriggerCallback(PxTriggerCallback cb) {
     g_triggerCb = cb;
 }
@@ -421,13 +429,8 @@ API int32_t GetLinearVelocity(
     PxActorHandle actorH,
     float outVel[3])
 {
-    PxRigidActor* base = reinterpret_cast<PxRigidActor*>(actorH);
-    if (!base) return 0;
-
-    if (base->getType() != PxActorType::eRIGID_DYNAMIC)
-        return 0;
-
-    PxRigidDynamic* dyn = static_cast<PxRigidDynamic*>(base);
+    PxRigidDynamic* dyn = GetRigidDynamic(actorH);
+    if (!dyn) return 0;
     PxVec3 v = dyn->getLinearVelocity();
 
     outVel[0] = v.x;
@@ -441,13 +444,9 @@ API int32_t GetAngularVelocity(
     PxActorHandle actorH,
     float outAngVel[3])
 {
-    PxRigidActor* base = reinterpret_cast<PxRigidActor*>(actorH);
-    if (!base) return 0;
+    PxRigidDynamic* dyn = GetRigidDynamic(actorH);
+    if (!dyn) return 0;
 
-    if (base->getType() != PxActorType::eRIGID_DYNAMIC)
-        return 0;
-
-    PxRigidDynamic* dyn = static_cast<PxRigidDynamic*>(base);
     PxVec3 w = dyn->getAngularVelocity();
     outAngVel[0] = w.x;
     outAngVel[1] = w.y;
@@ -969,13 +968,7 @@ API void PxActor_DetachShape(
     }
 }
 
-inline PxRigidDynamic* GetRigidDynamic(PxActorHandle actorHandle) {
-    PxActor* actor = reinterpret_cast<PxActor*>(actorHandle);
-    if (actor && actor->getConcreteType() == PxConcreteType::eRIGID_DYNAMIC) {
-        return static_cast<PxRigidDynamic*>(actor);
-    }
-    return nullptr;
-}
+
 
 API void PxRigidDynamic_WakeUp(PxActorHandle actorHandle) {
     PxRigidDynamic* rigidDynamic = GetRigidDynamic(actorHandle);
@@ -1047,4 +1040,24 @@ API void GetShapeLocalPose(
     if (qy) *qy = localPose.q.y;
     if (qz) *qz = localPose.q.z;
     if (qw) *qw = localPose.q.w;
+}
+
+API int32_t AddForceAtPosition(
+    PxActorHandle actorH,
+    float fx, float fy, float fz,
+    float px, float py, float pz,
+    int32_t mode,
+    int32_t autowake
+) {
+    PxRigidDynamic* rigidDynamic = GetRigidDynamic(actorH);
+    if (!rigidDynamic) return 0;
+
+    PxForceMode::Enum fm = static_cast<PxForceMode::Enum>(mode);
+    bool wake = (autowake != 0);
+
+    PxVec3 force(fx, fy, fz);
+    PxVec3 point(px, py, pz);
+    PxRigidBodyExt::addForceAtPos(*rigidDynamic, force, point, fm, wake);
+
+    return 1;
 }
