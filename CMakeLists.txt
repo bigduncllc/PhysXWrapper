@@ -6,6 +6,7 @@ set(SOURCES
         src/pch.cpp
         src/dllmain.cpp
         src/wrapper.cpp
+        src/TriggerFilterCallback.h
 )
 
 add_library(${PROJECT_NAME} SHARED ${SOURCES})

@@ -221,6 +221,7 @@ extern "C" {
         float qx, float qy, float qz, float qw,
         float r, float hh,
         uint32_t group, uint32_t mask,
+        int32_t triggerInteraction_mode,
         int32_t maxHits,
         PxActorHandle outActors[],
         PxShapeHandle outShapes[]);
@@ -240,6 +241,7 @@ extern "C" {
         float dx, float dy, float dz,
         float dist,
         uint32_t group, uint32_t mask,
+        int32_t triggerInteraction_mode,
         int32_t maxHits,
         float outHitPoints[][3],
         float outHitNormals[][3],
@@ -374,6 +376,11 @@ extern "C" {
         float outAngVel[3]
     );
 
+    API int32_t SetMaterials(
+        PxShapeHandle        shapeH,
+        PxMaterialHandle*    materialHandles,
+        uint16_t                 materialCount
+    );
 
 #ifdef __cplusplus
 }

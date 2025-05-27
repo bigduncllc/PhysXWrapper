@@ -15,6 +15,8 @@
 #include <PxSimulationEventCallback.h>
 #include <PxFiltering.h>
 
+#include "TriggerFilterCallback.h"
+
 #define RAYCAST_MAX_HITS 64
 
 
@@ -453,6 +455,20 @@ API int32_t GetAngularVelocity(
     return 1;
 }
 
+API int32_t SetMaterials(
+    PxShapeHandle        shapeH,
+    PxMaterialHandle*    materialHandles,
+    uint16_t             materialCount
+) {
+    PxShape* shape = reinterpret_cast<PxShape*>(shapeH);
+    if (!shape || !materialHandles || materialCount == 0)
+        return 0;
+
+    PxMaterial* const* mats = reinterpret_cast<PxMaterial* const*>(materialHandles);
+    shape->setMaterials(mats, materialCount);
+    return 1;
+}
+
 /*
 API int32_t ComputeCapsulePenetration(
     float ax, float ay, float az,
@@ -536,6 +552,7 @@ API int32_t SceneOverlapCapsuleFiltered(
     float qx, float qy, float qz, float qw,
     float r, float hh,
     uint32_t group, uint32_t mask,
+    int32_t triggerInteraction_mode,
     int32_t maxHits,
     PxActorHandle outActors[],
     PxShapeHandle outShapes[])
@@ -544,13 +561,17 @@ API int32_t SceneOverlapCapsuleFiltered(
     PxOverlapBuffer buf(hitBuf, 256);
 
     PxFilterData      fd(group, mask, 0, 0);
+
+    TriggerFilterCallback filterCallback(static_cast<TriggerFilterCallback::TriggerInteraction>(triggerInteraction_mode));
+
     PxQueryFilterData qfd(fd, PxQueryFlags(PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC));
 
     reinterpret_cast<PxScene*>(s_)->overlap(
         PxCapsuleGeometry(r, hh),
         PxTransform(PxVec3(px, py, pz), PxQuat(qx, qy, qz, qw)),
         buf,
-        qfd
+        qfd,
+        &filterCallback
     );
 
     PxU32 n = buf.getNbTouches();
@@ -663,6 +684,7 @@ API int32_t SceneSweepCapsuleFiltered(
     float dx, float dy, float dz,
     float dist,
     uint32_t group, uint32_t mask,
+    int32_t triggerInteraction_mode,
     int32_t maxHits,
     float outHitPoints[][3],
     float outHitNormals[][3],
@@ -674,6 +696,7 @@ API int32_t SceneSweepCapsuleFiltered(
 
     PxFilterData       fd(group, mask, 0, 0);
     PxQueryFilterData  qfd(fd, PxQueryFlags(PxQueryFlag::eSTATIC | PxQueryFlag::eDYNAMIC));
+    TriggerFilterCallback filterCallback(static_cast<TriggerFilterCallback::TriggerInteraction>(triggerInteraction_mode));
 
     reinterpret_cast<PxScene*>(s_)->sweep(
         PxCapsuleGeometry(r, hh),
@@ -682,7 +705,8 @@ API int32_t SceneSweepCapsuleFiltered(
         dist,
         buf,
         PxHitFlag::ePOSITION | PxHitFlag::eNORMAL,
-        qfd
+        qfd,
+        &filterCallback
     );
 
     PxU32 n = buf.getNbTouches();
