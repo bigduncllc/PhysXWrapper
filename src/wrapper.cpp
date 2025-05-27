@@ -1074,71 +1074,100 @@ API int32_t AddForceAtPosition(
     return 1;
 }
 
-API PxActorHandle CreateHeightFieldStaticActor(
-    PxPhysicsHandle physicsHandle,
-    PxCookingHandle cookingHandle,
-    uint32_t nbRows,
-    uint32_t nbColumns,
-    const void* samplesData,
-    uint32_t samplesStride,
-    float heightScale,
-    float rowScale,
-    float columnScale,
-    PxMaterialHandle materialHandle,
-    float actorPosX, float actorPosY, float actorPosZ,
-    float actorRotQx, float actorRotQy, float actorRotQz, float actorRotQw)
-{
+API int32_t CreateHeightFieldStaticActor(
+    PxPhysicsHandle   physicsHandle,
+    PxCookingHandle   cookingHandle,
+    uint32_t          nbRows,
+    uint32_t          nbColumns,
+    const uint16_t*   heightData,
+    float             heightScale,
+    float             rowScale,
+    float             columnScale,
+    PxMaterialHandle  materialHandle,
+    float             actorPosX, float actorPosY, float actorPosZ,
+    float             actorRotQx, float actorRotQy, float actorRotQz, float actorRotQw,
+    PxActorHandle*    outActor,
+    PxShapeHandle*    outShape
+) {
+    if (!outActor || !outShape) {
+        std::cerr << "CreateHeightFieldStaticActor: null outActor or outShape pointer\n";
+        return 0;
+    }
+
     PxPhysics* physics = reinterpret_cast<PxPhysics*>(physicsHandle);
-    if (!physics) return nullptr;
+    if (!physics) {
+        std::cerr << "CreateHeightFieldStaticActor: invalid physics handle\n";
+        return 0;
+    }
 
     PxCooking* cooking = reinterpret_cast<PxCooking*>(cookingHandle);
-    if (!cooking) return nullptr;
+    if (!cooking) {
+        std::cerr << "CreateHeightFieldStaticActor: invalid cooking handle\n";
+        return 0;
+    }
 
     PxMaterial* material = reinterpret_cast<PxMaterial*>(materialHandle);
-    if (!material) return nullptr;
+    if (!material) {
+        std::cerr << "CreateHeightFieldStaticActor: invalid material handle\n";
+        return 0;
+    }
+
+    size_t count = size_t(nbRows) * size_t(nbColumns);
+    std::vector<PxHeightFieldSample> samples(count);
+    if (heightData == nullptr) {
+        std::cerr << "CreateHeightFieldStaticActor: null heightData pointer\n";
+        return 0;
+    }
+    for (size_t i = 0; i < count; ++i) {
+        samples[i].height         = static_cast<PxI16>(heightData[i]);
+        samples[i].materialIndex0 = 0;
+        samples[i].materialIndex1 = 0;
+    }
 
     PxHeightFieldDesc hfDesc;
-    hfDesc.nbRows    = nbRows;
-    hfDesc.nbColumns = nbColumns;
-    hfDesc.samples.data   = samplesData;
-    hfDesc.samples.stride = samplesStride;
-    if (!hfDesc.isValid()) return nullptr;
+    hfDesc.nbRows       = nbRows;
+    hfDesc.nbColumns    = nbColumns;
+    hfDesc.format       = PxHeightFieldFormat::eS16_TM;
+    hfDesc.samples.data   = samples.data();
+    hfDesc.samples.stride = sizeof(PxHeightFieldSample);
+    if (!hfDesc.isValid()) {
+        std::cerr << "CreateHeightFieldStaticActor: invalid HeightFieldDesc\n";
+        return 0;
+    }
 
-    PxHeightField* heightField = cooking->createHeightField(
+    PxHeightField* hf = cooking->createHeightField(
         hfDesc,
         physics->getPhysicsInsertionCallback()
     );
-    if (!heightField) return nullptr;
+    if (!hf) {
+        std::cerr << "CreateHeightFieldStaticActor: failed to cook height field\n";
+        return 0;
+    }
 
-    PxHeightFieldGeometry hfGeom(
-        heightField,
-        PxMeshGeometryFlags(),
-        heightScale,
-        rowScale,
-        columnScale
-    );
+    PxHeightFieldGeometry geom(hf, PxMeshGeometryFlags(), heightScale, rowScale, columnScale);
 
-    PxTransform transform(
+    PxTransform tf(
         PxVec3(actorPosX, actorPosY, actorPosZ),
         PxQuat(actorRotQx, actorRotQy, actorRotQz, actorRotQw)
     );
 
-    PxRigidStatic* staticActor = physics->createRigidStatic(transform);
-    if (!staticActor) {
-        heightField->release();
-        return nullptr;
+    PxRigidStatic* actor = physics->createRigidStatic(tf);
+    if (!actor) {
+        std::cerr << "CreateHeightFieldStaticActor: failed to create rigid static actor\n";
+        hf->release();
+        return 0;
     }
 
-    PxShape* hfShape = PxRigidActorExt::createExclusiveShape(
-        *staticActor,
-        hfGeom,
-        *material
-    );
-    if (!hfShape) {
-        staticActor->release();
-        heightField->release();
-        return nullptr;
+    PxShape* shape = PxRigidActorExt::createExclusiveShape(*actor, geom, *material);
+    if (!shape) {
+        std::cerr << "CreateHeightFieldStaticActor: failed to create shape\n";
+        actor->release();
+        hf->release();
+        return 0;
     }
 
-    return staticActor;
+    *outActor = reinterpret_cast<PxActorHandle>(actor);
+    *outShape = reinterpret_cast<PxShapeHandle>(shape);
+    return 1;
 }
+
