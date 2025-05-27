@@ -194,15 +194,6 @@ extern "C" {
         float outHitNormal[3],
         PxActorHandle* outActor);
 
-    API int32_t            ComputePenetration(
-        float ax, float ay, float az,
-        float aqx, float aqy, float aqz, float aqw,
-        float aRadius, float aHalfHeight,
-        float bx, float by, float bz,
-        float bqx, float bqy, float bqz, float bqw,
-        float bRadius, float bHalfHeight,
-        float outDirection[3],
-        float* outPenetrationDepth);
 
     API void               GetGlobalPose(
         PxActorHandle,
@@ -233,6 +224,13 @@ extern "C" {
         int32_t maxHits,
         PxActorHandle outActors[],
         PxShapeHandle outShapes[]);
+
+
+    API int32_t ComputePenetration(
+      PxActorHandle actorA, PxShapeHandle shapeA,
+      PxActorHandle actorB, PxShapeHandle shapeB,
+      float outDir[3], float* outDepth
+    );
 
     API int32_t SceneSweepCapsuleFiltered(
         PxSceneHandle s_,
@@ -365,6 +363,17 @@ extern "C" {
         PxActorHandle   outActors[],
         PxShapeHandle   outShapes[]
     );
+
+    API int32_t GetLinearVelocity(
+        PxActorHandle actor,
+        float outVel[3]
+    );
+
+    API int32_t GetAngularVelocity(
+        PxActorHandle actor,
+        float outAngVel[3]
+    );
+
 
 #ifdef __cplusplus
 }

@@ -388,6 +388,73 @@ API int32_t SceneRaycast(
 }
 
 API int32_t ComputePenetration(
+      PxActorHandle actorA, PxShapeHandle shapeA,
+      PxActorHandle actorB, PxShapeHandle shapeB,
+      float outDir[3], float* outDepth
+    ) {
+    PxRigidActor*  aActor = reinterpret_cast<PxRigidActor*>(actorA);
+    PxRigidActor*  bActor = reinterpret_cast<PxRigidActor*>(actorB);
+
+    PxShape*       aShape = reinterpret_cast<PxShape*>(shapeA);
+    PxShape*       bShape = reinterpret_cast<PxShape*>(shapeB);
+
+    PxTransform poseA = aActor->getGlobalPose() * aShape->getLocalPose();
+    auto geomA      = aShape->getGeometry().any();
+    PxTransform poseB = bActor->getGlobalPose() * bShape->getLocalPose();
+    auto geomB      = bShape->getGeometry().any();
+
+    PxVec3 dir; PxReal depth;
+    if (!PxGeometryQuery::computePenetration(dir, depth,
+        geomA, poseA,
+        geomB, poseB)) {
+        return 0;
+        }
+
+    outDir[0]=dir.x; outDir[1]=dir.y; outDir[2]=dir.z;
+    *outDepth = (float)depth;
+    return 1;
+}
+
+API int32_t GetLinearVelocity(
+    PxActorHandle actorH,
+    float outVel[3])
+{
+    PxRigidActor* base = reinterpret_cast<PxRigidActor*>(actorH);
+    if (!base) return 0;
+
+    if (base->getType() != PxActorType::eRIGID_DYNAMIC)
+        return 0;
+
+    PxRigidDynamic* dyn = static_cast<PxRigidDynamic*>(base);
+    PxVec3 v = dyn->getLinearVelocity();
+
+    outVel[0] = v.x;
+    outVel[1] = v.y;
+    outVel[2] = v.z;
+    return 1;
+}
+
+
+API int32_t GetAngularVelocity(
+    PxActorHandle actorH,
+    float outAngVel[3])
+{
+    PxRigidActor* base = reinterpret_cast<PxRigidActor*>(actorH);
+    if (!base) return 0;
+
+    if (base->getType() != PxActorType::eRIGID_DYNAMIC)
+        return 0;
+
+    PxRigidDynamic* dyn = static_cast<PxRigidDynamic*>(base);
+    PxVec3 w = dyn->getAngularVelocity();
+    outAngVel[0] = w.x;
+    outAngVel[1] = w.y;
+    outAngVel[2] = w.z;
+    return 1;
+}
+
+/*
+API int32_t ComputeCapsulePenetration(
     float ax, float ay, float az,
     float aqx, float aqy, float aqz, float aqw,
     float ar, float ah,
@@ -397,16 +464,24 @@ API int32_t ComputePenetration(
     float outDir[3],
     float* outDepth)
 {
-    PxCapsuleGeometry A(ar, ah), B(br, bh);
+    PxCapsuleGeometry A(ar, ah);
+    PxCapsuleGeometry B(br, bh);
     PxTransform TA(PxVec3(ax, ay, az), PxQuat(aqx, aqy, aqz, aqw));
     PxTransform TB(PxVec3(bx, by, bz), PxQuat(bqx, bqy, bqz, bqw));
-    PxVec3 dir; float depth;
-    if (!PxGeometryQuery::computePenetration(dir, depth, A, TA, B, TB))
+    PxVec3 dir;
+    float depth;
+
+    if (!PxGeometryQuery::computePenetration(dir, depth, A, TA, B, TB)) {
         return 0;
-    outDir[0] = dir.x; outDir[1] = dir.y; outDir[2] = dir.z;
+    }
+
+    outDir[0] = dir.x;
+    outDir[1] = dir.y;
+    outDir[2] = dir.z;
     *outDepth = depth;
     return 1;
 }
+*/
 
 API void GetGlobalPose(
     PxActorHandle a_,
@@ -483,6 +558,7 @@ API int32_t SceneOverlapCapsuleFiltered(
     PxU32 count = PxMin(n, PxMin< PxU32>(256, (PxU32)maxHits));
     for (PxU32 i = 0; i < count; ++i) {
         outActors[i] = hits[i].actor;
+        outShapes[i] = hits[i].shape;
         outShapes[i] = hits[i].shape;
     }
     return int32_t(count);
