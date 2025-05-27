@@ -392,6 +392,19 @@ extern "C" {
 
     API void SetMass(PxActorHandle actorH, float mass);
 
+    API PxActorHandle CreateHeightFieldStaticActor(
+        PxPhysicsHandle physicsHandle,
+        PxCookingHandle cookingHandle,
+        uint32_t nbRows,
+        uint32_t nbColumns,
+        const void* samplesData,
+        uint32_t samplesStride,
+        float heightScale,
+        float rowScale,
+        float columnScale,
+        PxMaterialHandle materialHandle,
+        float actorPosX, float actorPosY, float actorPosZ,
+        float actorRotQx, float actorRotQy, float actorRotQz, float actorRotQw);r
 #ifdef __cplusplus
 }
 #endif

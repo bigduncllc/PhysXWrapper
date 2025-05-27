@@ -1073,3 +1073,72 @@ API int32_t AddForceAtPosition(
 
     return 1;
 }
+
+API PxActorHandle CreateHeightFieldStaticActor(
+    PxPhysicsHandle physicsHandle,
+    PxCookingHandle cookingHandle,
+    uint32_t nbRows,
+    uint32_t nbColumns,
+    const void* samplesData,
+    uint32_t samplesStride,
+    float heightScale,
+    float rowScale,
+    float columnScale,
+    PxMaterialHandle materialHandle,
+    float actorPosX, float actorPosY, float actorPosZ,
+    float actorRotQx, float actorRotQy, float actorRotQz, float actorRotQw)
+{
+    PxPhysics* physics = reinterpret_cast<PxPhysics*>(physicsHandle);
+    if (!physics) return nullptr;
+
+    PxCooking* cooking = reinterpret_cast<PxCooking*>(cookingHandle);
+    if (!cooking) return nullptr;
+
+    PxMaterial* material = reinterpret_cast<PxMaterial*>(materialHandle);
+    if (!material) return nullptr;
+
+    PxHeightFieldDesc hfDesc;
+    hfDesc.nbRows    = nbRows;
+    hfDesc.nbColumns = nbColumns;
+    hfDesc.samples.data   = samplesData;
+    hfDesc.samples.stride = samplesStride;
+    if (!hfDesc.isValid()) return nullptr;
+
+    PxHeightField* heightField = cooking->createHeightField(
+        hfDesc,
+        physics->getPhysicsInsertionCallback()
+    );
+    if (!heightField) return nullptr;
+
+    PxHeightFieldGeometry hfGeom(
+        heightField,
+        PxMeshGeometryFlags(),
+        heightScale,
+        rowScale,
+        columnScale
+    );
+
+    PxTransform transform(
+        PxVec3(actorPosX, actorPosY, actorPosZ),
+        PxQuat(actorRotQx, actorRotQy, actorRotQz, actorRotQw)
+    );
+
+    PxRigidStatic* staticActor = physics->createRigidStatic(transform);
+    if (!staticActor) {
+        heightField->release();
+        return nullptr;
+    }
+
+    PxShape* hfShape = PxRigidActorExt::createExclusiveShape(
+        *staticActor,
+        hfGeom,
+        *material
+    );
+    if (!hfShape) {
+        staticActor->release();
+        heightField->release();
+        return nullptr;
+    }
+
+    return staticActor;
+}

@@ -33,13 +33,13 @@ PhysXWrapper is a C API wrapper for NVIDIA PhysX SDK 4.1, built as a shared libr
 * Setting filter layer masks and per-shape filter data (sim/query)
 * Registration of collision (enter/stay/exit) and trigger callbacks
 * Creation and management of CPU dispatchers and simulation event callbacks
-
+* Settings & retrieval of linear/angular velocity on dynamic actors
+* Application of forces or impulses
+* 
 ## Limitations
 
 This wrapper does not currently support:
 
-* Direct setting or retrieval of linear/angular velocity on dynamic actors
-* Application of forces or impulses
 * Creation of joints or constraints (e.g., fixed, revolute, distance joints)
 * Vehicle, cloth, or soft-body modules
 * Character controllers or kinematic controllers beyond basic kinematic target setting
