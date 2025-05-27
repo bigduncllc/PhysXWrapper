@@ -390,6 +390,8 @@ extern "C" {
         int32_t autowake
     );
 
+    API void SetMass(PxActorHandle actorH, float mass);
+
 #ifdef __cplusplus
 }
 #endif

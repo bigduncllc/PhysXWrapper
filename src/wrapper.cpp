@@ -227,17 +227,29 @@ API PxActorHandle CreateRigidStatic(
 {
     PxPhysics* p = reinterpret_cast<PxPhysics*>(p_);
     PxTransform t(PxVec3(px, py, pz), PxQuat(qx, qy, qz, qw));
-    return p->createRigidStatic(t);
+
+    PxActor *actor = p->createRigidStatic(t);
+
+    return actor;
 }
 
 API PxActorHandle CreateRigidDynamic(
     PxPhysicsHandle p_,
     float px, float py, float pz,
-    float qx, float qy, float qz, float qw)
+    float qx, float qy, float qz, float qw,
+    float mass)
 {
     PxPhysics* p = reinterpret_cast<PxPhysics*>(p_);
     PxTransform t(PxVec3(px, py, pz), PxQuat(qx, qy, qz, qw));
-    return p->createRigidDynamic(t);
+    PxRigidDynamic *dyn = p->createRigidDynamic(t);
+    dyn->setMass(mass);
+    return dyn;
+}
+
+API void SetMass(PxActorHandle actorH, float mass) {
+    PxRigidDynamic *dyn = GetRigidDynamic(actorH);
+    if (!dyn) return;
+    dyn->setMass(mass);
 }
 
 API void ReleaseActor(PxActorHandle a_) {
